@@ -1,0 +1,17 @@
+S	r	S;VP;ADJP
+VP	r	VP;VV;ADJP;CV;LV;NP
+NP	r   NP;S;N.*
+DANP	r   DANP|
+ADVP	r
+ADJP	r
+ADCP	r
+INTJ	r
+WHNP	r
+ADV	r
+VX	r
+VV	r
+VJ	r
+CV	r
+LV	r
+LST	r   NNU
+PRN	r

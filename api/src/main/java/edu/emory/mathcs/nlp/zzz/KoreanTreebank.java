@@ -35,6 +35,7 @@ public class KoreanTreebank
 	public KoreanTreebank(String[] args)
 	{
 		String path = "/Users/jdchoi/Documents/Data/penn/korean/parse/newswire";
+//		String path = "/Users/jayeolchun/Documents/Research/NLP/Korean/data/penn/newswire";
 		CTReader reader = new CTReader();
 		CTTree tree;
 		
@@ -42,8 +43,8 @@ public class KoreanTreebank
 		Object2IntMap<String> posTags = new Object2IntOpenHashMap<>();
 		Object2IntMap<String> functionTags = new Object2IntOpenHashMap<>();
 		Object2IntMap<String> emptyCategories = new Object2IntOpenHashMap<>();
-		int wc = 0;
-		
+		int wc = 0; // word count
+
 		for (String filename : FileUtils.getFileList(path, "parse"))
 		{
 			System.out.println(filename);

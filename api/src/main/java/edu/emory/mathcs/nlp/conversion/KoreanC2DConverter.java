@@ -16,11 +16,17 @@
 package edu.emory.mathcs.nlp.conversion;
 
 import edu.emory.mathcs.nlp.common.constituent.CTNode;
+import edu.emory.mathcs.nlp.common.constituent.CTReader;
 import edu.emory.mathcs.nlp.common.constituent.CTTree;
 import edu.emory.mathcs.nlp.common.treebank.PTBTag;
+import edu.emory.mathcs.nlp.common.util.FileUtils;
+import edu.emory.mathcs.nlp.common.util.IOUtils;
 import edu.emory.mathcs.nlp.component.template.node.NLPNode;
 import edu.emory.mathcs.nlp.conversion.util.HeadRule;
 import edu.emory.mathcs.nlp.conversion.util.HeadRuleMap;
+
+import java.io.FileInputStream;
+import java.io.InputStream;
 
 /**
  * @author Jinho D. Choi ({@code jinho.choi@emory.edu})
@@ -66,6 +72,8 @@ public class KoreanC2DConverter extends C2DConverter
 		if (ante != null && !ec.isDescendantOf(ante))
 			replaceEmptyCategory(ec, ante);
 	}
+
+
 	
 	
 	
@@ -113,5 +121,44 @@ public class KoreanC2DConverter extends C2DConverter
 	{
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+
+
+	static public void main(String[] args){
+		String headrule_path = "src/main/resources/edu/emory/mathcs/nlp/conversion/headrule_en_conll.txt";
+//		String headrule_path = "src/main/resources/edu/emory/mathcs/nlp/conversion/headrule_kr_penn.txt";
+		System.out.println("Reading in HeadRule Map...");
+		HeadRuleMap hr = new HeadRuleMap(IOUtils.createFileInputStream(headrule_path));
+		System.out.println("Done.");
+
+		System.out.println("Initializing Converter...");
+		KoreanC2DConverter converter = new KoreanC2DConverter(hr);
+		System.out.println("Done.");
+
+		String path = "/Users/jayeolchun/Documents/Research/NLP/Korean/data/penn/newswire";
+		CTReader reader = new CTReader();
+		CTTree tree;
+
+		System.out.println("Begin Converting.");
+		for (String filename : FileUtils.getFileList(path, "parse"))
+		{
+			System.out.println(filename);
+			reader.open(IOUtils.createFileInputStream(filename));
+
+			while ((tree = reader.nextTree()) != null)
+			{
+//				count(tree.getRoot(), phraseTags, posTags, functionTags, emptyCategories);
+//				wc += tree.getTokenList().size();
+				converter.toDependencyGraph(tree);
+			}
+
+			reader.close();
+		}
+
+
+
+
+		System.out.println("Conversion Complete.");
 	}
 }
