@@ -36,7 +36,7 @@ public class NLPNode extends AbstractNLPNode<NLPNode>
 	
 	public NLPNode(int id, String form, String posTag, FeatMap feats)
 	{
-		
+		super(id, form, posTag, feats);
 	}
 	
 	public NLPNode(int id, String form, String lemma, String posTag, FeatMap feats)

@@ -1,17 +1,17 @@
-S	r	S;VP;ADJP
-VP	r	VP;VV;ADJP;CV;LV;NP
-NP	r   NP;S;N.*
-DANP	r   DANP|
-ADVP	r
-ADJP	r
-ADCP	r
-INTJ	r
-WHNP	r
-ADV	r
-VX	r
-VV	r
-VJ	r
-CV	r
-LV	r
-LST	r   NNU
-PRN	r
+S	r	S;VP;ADJP;*
+VP	r	VP;VV;ADJP;CV;LV;NP;*
+NP	r   NP;S;N.*;*
+DANP	r   DANP|DAN;*
+ADVP	r   ADV;*
+ADJP	r   ADJP;VJ;LV;*
+ADCP	r   ADC;*
+INTJ	r   IJ;*
+ADV	r   VJ;NNC;*
+VX	r   NNX;*
+VV	r   VV;NNC;VJ;*
+VJ	r   VJ;NNC;*
+CV	r   VV;*
+LV	r   VV;J;*
+LST	r   NNU;*
+PRN	r   N.*|NP|VP|S|ADJP|ADVP;*
+X   r   *
