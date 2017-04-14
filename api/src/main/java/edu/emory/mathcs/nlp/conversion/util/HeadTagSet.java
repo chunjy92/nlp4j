@@ -64,11 +64,19 @@ public class HeadTagSet
 	/** @return {@code true} if the specific node matches any of the tags. */
 	public boolean matches(CTNode node)
 	{
-		if (node != null && p_constituentTags != null && node.matchesConstituentTag(p_constituentTags))
+//		System.out.println("\nInside matches within HeadTagSet");
+//		System.out.println(p_constituentTags);
+//		System.out.println("Current node");
+//		System.out.println(node);
+		if (node != null && p_constituentTags != null && node.matchesConstituentTag(p_constituentTags)){
+//			System.out.println("First True");
 			return true;
-		else if (node.hasFunctionTagAny(s_functionTags))
+		}
+		else if (node.hasFunctionTagAny(s_functionTags)){
+//			System.out.println("SEcond True");
 			return true;
-		
+		}
+//		System.out.println("Returning False");
 		return false;
 	}
 

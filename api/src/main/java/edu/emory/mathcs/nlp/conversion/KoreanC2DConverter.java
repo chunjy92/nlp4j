@@ -28,6 +28,7 @@ import edu.emory.mathcs.nlp.component.tokenizer.dictionary.Emoticon;
 import edu.emory.mathcs.nlp.conversion.util.C2DInfo;
 import edu.emory.mathcs.nlp.conversion.util.HeadRule;
 import edu.emory.mathcs.nlp.conversion.util.HeadRuleMap;
+import edu.emory.mathcs.nlp.conversion.util.HeadTagSet;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -39,15 +40,15 @@ public class KoreanC2DConverter extends C2DConverter
 {
 
 	private final Set<String> S_MARK		= DSUtils.toHashSet(PTBTag.P_IN, PTBTag.P_TO, PTBTag.P_DT);
+	private final Set<String> S_META		= DSUtils.toHashSet(PKTBTag.C_LST);
 
 	private final Set<String> S_NOUN_PHRASE	= DSUtils.toHashSet(PKTBTag.C_NP);
+	private final Set<String> S_PUNCT		= DSUtils.toHashSet(PKTBTag.P_SCM, PKTBTag.P_SFN, PKTBTag.P_SLQ, PKTBTag.P_SRQ, PKTBTag.P_SSY);
+//	private final Set<String> S_PUNCT		= DSUtils.toHashSet(PKTBTag.P_SCM, PKTBTag.P_SFN, PKTBTag.P_SLQ, PKTBTag.P_SRQ);
 
 
 	/** Syntactic function tags. */
-	private final Set<String> SYN_TAGS = DSUtils.toHashSet(PTBTag.F_ADV, PTBTag.F_CLF, PTBTag.F_CLR, PTBTag.F_DTV, PTBTag.F_NOM, PTBTag.F_PUT, PTBTag.F_PRD, PTBTag.F_TPC);
-
-	/** Semantic function tags. */
-	private final Set<String> SEM_TAGS = DSUtils.toHashSet(PTBTag.F_BNF, PTBTag.F_DIR, PTBTag.F_EXT, PTBTag.F_LOC, PTBTag.F_MNR, PTBTag.F_PRP, PTBTag.F_TMP, PTBTag.F_VOC);
+	private final Set<String> SYN_TAGS = DSUtils.toHashSet(PKTBTag.F_ADV, PKTBTag.F_COMP, PKTBTag.F_LV, PKTBTag.F_OBJ, PKTBTag.F_SBJ, PKTBTag.F_VOC);
 
 	private final int SIZE_HEAD_FLAGS = 4;
 
@@ -84,13 +85,13 @@ public class KoreanC2DConverter extends C2DConverter
 			if (!node.isEmptyCategory()) continue;
 			if (node.getParent() == null) continue;
 
-			if (node.wordFormStartsWith(PTBTag.E_TRACE)){
+			if (node.wordFormStartsWith(PKTBTag.E_TRACE)){
 				mapTrace(cTree, node);
-			}else if (node.wordFormStartsWith(PTBTag.E_PRO)){
+			}else if (node.wordFormStartsWith(PKTBTag.E_PRO)){
 				mapPRO(cTree, node);
 //			} else if (node.wordFormStartsWith(PTBTag.E_OP)){
 
-			} else if (node.wordFormStartsWith(PTBTag.E_ESM)){
+			} else if (node.wordFormStartsWith(PKTBTag.E_ESM)){
 
 			} else {
 				removeNode(node);
@@ -135,15 +136,39 @@ public class KoreanC2DConverter extends C2DConverter
 	@Override
 	protected void setHeadsAux(HeadRule rule, CTNode curr)
 	{
+//
+//		// 1. apposition
+//		findHeadsApposition(curr);
+//
+//		// 2. coordination head finding : left-branching
+//
+//		CTNode head = getHead(rule, curr.getChildrenList(), SIZE_HEAD_FLAGS);
+//		if (head.getC2DInfo().getLabel() != null) head.getC2DInfo().setLabel(null);
+//		curr.setC2DInfo(new C2DInfo(head));
 
-		// 1. apposition
-		findHeadsApposition(curr);
+		System.out.println("\n--- Inside SetHeadsAUX Method wihtin Korean C2D Converter...");
+		// 1. coordination
+//		if (findHeadsCoordination(rule, curr))	return;
 
-		// 2. coordination head finding : left-branching
+//		System.out.println("Currently,");
+//		System.out.println(curr);
 
 		CTNode head = getHead(rule, curr.getChildrenList(), SIZE_HEAD_FLAGS);
+		System.out.print(" ** Within Set Heads, what is head?\n\t");
+		System.out.println("Current is:");
+		System.out.println(curr);
+		System.out.println("Head is:");
+		System.out.println(head);
+		System.out.println(head.getC2DInfo().getLabel());
 		if (head.getC2DInfo().getLabel() != null) head.getC2DInfo().setLabel(null);
 		curr.setC2DInfo(new C2DInfo(head));
+		System.out.println("** Update!");
+		System.out.println(head);
+		System.out.println(head.getC2DInfo().getLabel());
+		System.out.println(head.getC2DInfo().getTerminalHead());
+		System.out.println(head.getC2DInfo().getNonTerminalHead());
+		System.out.println("Finished set Heads Aux..\n");
+		System.out.println("\n--- Exiting SetHeadsAUX Method wihtin Korean C2D Converter...");
 
 		
 	}
@@ -185,7 +210,7 @@ public class KoreanC2DConverter extends C2DConverter
 
 	private boolean hasAdverbialTag(CTNode node)
 	{
-		return node.hasFunctionTag(PTBTag.F_ADV) || DSUtils.hasIntersection(node.getFunctionTagSet(), SEM_TAGS);
+		return node.hasFunctionTag(PKTBTag.F_ADV);
 	}
 
 	/* (non-Javadoc)
@@ -194,18 +219,267 @@ public class KoreanC2DConverter extends C2DConverter
 	@Override
 	protected int getHeadFlag(CTNode child)
 	{
-		// TODO Auto-generated method stub
+		C2DInfo info = child.getC2DInfo();
+
+		if (info.hasHead())// && info.getTerminalHead() != info.getNonTerminalHead())
+			return -1;
+
+		if (hasAdverbialTag(child))
+			return 1;
+
+		if (isMeta(child))
+			return 2;
+
+		if (child.isEmptyCategoryTerminal() || PKTBLib.isPunctuation(child.getConstituentTag()))
+			return 3;
+
 		return 0;
+	}
+
+	// obj vs iobj
+	private String getObjectLabel(CTNode C)
+	{
+//		if (node.isConstituentTagAny(S_NOUN_PHRASE))
+		if (C.hasFunctionTag(PKTBTag.F_OBJ))
+		{
+//			if (node.hasFunctionTag(PTBTag.F_PRD))
+//				return DEPTagEn.DEP_ATTR;
+//			else
+//				return DEPTagEn.DEP_DOBJ;
+			return UDTag.D_OBJ;
+		}
+
+		return null;
+	}
+
+	// nsubj vs csubj
+	private String getSubjectLabel(CTNode C, CTNode P)
+	{
+
+		if (C.hasFunctionTag(PKTBTag.F_SBJ))
+		{
+//			if (PTBLib.isClause(C))
+//				return DEPTagEn.DEP_CSUBJ;
+//			else if (d.isConstituentTag(PTBTag.P_EX) || d.isWordFormIgnoreCase("there"))
+//				return DEPTagEn.DEP_EXPL;
+//			else
+
+//				return DEPTagEn.DEP_NSUBJ;
+			if (P.hasFunctionTag(PKTBTag.F_COMP))
+				return UDTag.D_CSUBJ;
+			return UDTag.D_NSUBJ;
+		}
+//		else if (C.hasFunctionTag(PTBTag.F_LGS))
+//			return DEPTagEn.DEP_AGENT;
+
+		return null;
+	}
+
+	private String getVocativeLabel(CTNode C, CTNode d)
+	{
+		if (C.hasFunctionTag(PKTBTag.F_VOC))
+		{
+//			if (PTBLib.isClause(C))
+//				return DEPTagEn.DEP_CSUBJ;
+//			else if (d.isConstituentTag(PTBTag.P_EX) || d.isWordFormIgnoreCase("there"))
+//				return DEPTagEn.DEP_EXPL;
+//			else
+
+//				return DEPTagEn.DEP_NSUBJ;
+			return UDTag.D_VOCATIVE;
+		}
+//		else if (C.hasFunctionTag(PTBTag.F_LGS))
+//			return DEPTagEn.DEP_AGENT;
+
+		return null;
+	}
+
+	private String getAdverbialLabel(CTNode C, CTNode d)
+	{
+		if (C.hasFunctionTag(PKTBTag.F_ADV))
+		{
+//			if (PTBLib.isClause(C))
+//				return DEPTagEn.DEP_CSUBJ;
+//			else if (d.isConstituentTag(PTBTag.P_EX) || d.isWordFormIgnoreCase("there"))
+//				return DEPTagEn.DEP_EXPL;
+//			else
+
+//				return DEPTagEn.DEP_NSUBJ;
+
+			if (d.getLastConstituentTag().equals(PKTBTag.P_PAD))
+				return UDTag.D_CASE;
+
+			return UDTag.D_ADVMOD;
+		}
+//		else if (C.hasFunctionTag(PTBTag.F_LGS))
+//			return DEPTagEn.DEP_AGENT;
+
+		return null;
+	}
+
+	private String getNmodLabel(CTNode C, CTNode d)
+	{
+//		if (C.isConstituentTagAny(S_PARTICIPIAL))
+//			return DEPTagEn.DEP_AMOD;
+
+//		if (C.isConstituentTagAny(PKTBTag.))
+//			return DEPTagEn.DEP_DET;
+
+//		if (C.isConstituentTagAny(S_NN) || (C.matches(CTLibEn.M_NNx) || C.isConstituentTag(CTLibEn.P_FW)))
+//			return DEPTagEn.DEP_COMPOUND;
+
+//		if (C.isConstituentTagAny(S_NUM) || d.isConstituentTag(CTLibEn.P_CD))
+//			return DEPTagEn.DEP_NUMMOD;
+
+		if (C.isConstituentTag(PKTBTag.P_NNU))
+			return UDTag.D_NUMMOD;
+		if (d.getLastConstituentTag().equals(PKTBTag.P_PCJ))
+			return UDTag.D_CONJ;
+//		if (C.isConstituentTag(PTBTag.P_POS))
+//			return DEPTagEn.DEP_CASE;
+//
+//		if (C.isConstituentTag(PTBTag.P_PDT))
+//			return DEPTagEn.DEP_PREDET;
+
+//		return DEPTagEn.DEP_NMOD;
+		return UDTag.D_NMOD;
 	}
 
 	/* (non-Javadoc)
 	 * @see edu.emory.mathcs.nlp.conversion.C2DConverter#getDEPLabel(edu.emory.mathcs.nlp.common.constituent.CTNode, edu.emory.mathcs.nlp.common.constituent.CTNode, edu.emory.mathcs.nlp.common.constituent.CTNode)
 	 */
 	@Override
-	protected String getDEPLabel(CTNode C, CTNode P, CTNode p2)
+	protected String getDEPLabel(CTNode C, CTNode P, CTNode head)
 	{
-		// TODO Auto-generated method stub
-		return null;
+		// C : child node
+		// P : parent node
+		// head : head node
+		CTNode c = C.getC2DInfo().getNonTerminalHead(); // c : head constituent of C
+		CTNode d = C.getC2DInfo().getTerminalHead(); // d : head dependent of C
+		String dw = d.getWordForm();
+		String label = "";
+
+		System.out.println("\n--- Inside Get Dep Label within Korean C2D Converter...");
+		System.out.println("Child:\n\t" + C);
+		System.out.println("Child NT head:\n\t" + c);
+		System.out.println("Child T head:\n\t" + d);
+		System.out.println(d.getConstituentTag());
+		System.out.println("Parent:\n\t" + P);
+		System.out.println("Head:\n\t" + head);
+
+		if (head.getTokenID()==0)
+			return UDTag.D_ROOT;
+
+		if (C.isConstituentTag(PKTBTag.C_PRN)){
+			System.out.println("Parenthetical expression");
+			return UDTag.D_APPOS;
+		}
+
+//		if (d.isConstituentTag(PKTBTag.P_NNX))
+//			return UDTag.D_CLF;
+
+		if (d.isConstituentTag(PKTBTag.P_DAN))
+			return UDTag.D_DET;
+
+		if (d.isConstituentTag(PKTBTag.P_ADC)){
+			if (dw.equals("또") || dw.equals("및") || dw.equals("또는") || dw.equals("그리고")) {
+				System.out.println("Conjunctive Adverb");
+				return UDTag.D_CC;
+			}
+			return UDTag.D_ADVMOD;
+		}
+
+		if (C.isConstituentTagAny(S_PUNCT)){
+			System.out.println("PUNCT");
+			return UDTag.D_PUNCT;
+		}
+
+		if (d.isConstituentTagSetAny(PKTBTag.H_VX)){
+			System.out.println("Auxiliary Verb");
+			return UDTag.D_AUX;
+		}
+
+		if (d.isConstituentTag(PKTBTag.H_ADV)){
+			System.out.println("ADV!!@");
+			return UDTag.D_ADVMOD;
+		}
+
+		if (C.isConstituentTag(PKTBTag.C_ADJP) || d.isConstituentTagSetAny(PKTBTag.P_VJ))
+			return UDTag.D_AMOD;
+
+
+
+
+//		if (PKTBLib.isPunctuation(C.getConstituentTag()))
+
+
+
+		if (C.hasFunctionTag(PKTBTag.F_COMP)){
+			System.out.println("COMP!!!!");
+//			String s = C.getConstituentTag();
+//			String[] se = s.split("\\+");
+			System.out.println(c.getLastWordForm());
+
+//			System.out.println(se[se.length-1]);
+			String s = d.getLastConstituentTag();
+			String w = d.getLastWordForm();
+			if (s.equals("PAD") && (w.equals("에게") || w.equals("게"))){
+				System.out.println("INDIRECT OBJ");
+				return UDTag.D_IOBJ;
+			}
+//			System.out.println(s);
+		}
+
+
+//		if (head.getFunctionTagSet())
+//		System.out.println("Pribnting child's function tagset");
+//		for (String a : C.getFunctionTagSet()){
+//			System.out.println(a);
+//		}
+		// -SBJ function tags
+		if ((label = getSubjectLabel(C, P)) != null) {
+			System.out.println("SBJ Funciton TAgs?");
+			System.out.println(label);
+			return label;
+		} else if ((label = getObjectLabel(C)) != null) {
+			System.out.println("OBJ Funciton TAgs?");
+			System.out.println(label);
+			return label;
+		} else if ((label = getAdverbialLabel(C, d)) != null) {
+			System.out.println("ADV Funciton TAgs?");
+			System.out.println(label);
+			return label;
+		} else if ((label = getVocativeLabel(C, d)) != null) {
+			System.out.println("AVOC Funciton TAgs?");
+			System.out.println(label);
+			return label;
+		}
+
+		if (P.isConstituentTag(PKTBTag.C_NP)) {
+			System.out.println("N MOD");
+			return getNmodLabel(C, d);
+		} else if (P.isConstituentTag(PKTBTag.H_CV)){
+			System.out.println("Compound VERB");
+			return UDTag.D_COMPOUND;
+		}
+
+		if (d.getLastConstituentTag().equals(PKTBTag.P_PAD)) {
+			return UDTag.D_ADVMOD;
+		} else if (d.getConstituentTag().equals(PKTBTag.P_PCA))
+			return UDTag.D_CASE;
+
+
+
+
+
+
+
+
+
+
+//		return null;
+//		return "subj";
+		return UDTag.D_DEP;
 	}
 
 
@@ -221,13 +495,13 @@ public class KoreanC2DConverter extends C2DConverter
 
 		System.out.println("\nInit Dept Complete.\n");
 
-		System.out.println("\nDone\n");
-
 		addDEPHeads(dTree, cTree);
+		System.out.println("\nDone.\n");
+
+		System.out.println("\nPrinting each node..");
 		for (NLPNode node: dTree){
 			System.out.println(node);
 		}
-
 		System.out.println("\nDone.\n");
 
 		if (NLPUtils.containsCycle(dTree))
@@ -242,11 +516,7 @@ public class KoreanC2DConverter extends C2DConverter
 		return getDEPTreeWithoutEdited(cTree, dTree);
 	}
 
-	public void addNamedEntities(NLPNode[] dTree, CTTree cTree)
-	{
-		for (CTNode node : cTree.getTokenList())
-			dTree[node.getTokenID()+1].setNamedEntityTag(node.getNamedEntityTag());
-	}
+
 
 
 	/** Adds dependency heads. */
@@ -277,7 +547,8 @@ public class KoreanC2DConverter extends C2DConverter
 			} else {
 				System.out.println("\t2: Else");
 				label = cNode.getC2DInfo().getLabel();
-
+				System.out.println("Label??");
+				System.out.println(label);
 				if (cNode.isConstituentTagAny(S_MARK) && cNode.getParent().isConstituentTag(PTBTag.C_SBAR))// && !label.equals(DEPTagEn.DEP_COMPLM))
 					label = DEPTagEn.DEP_MARK;
 
@@ -302,11 +573,15 @@ public class KoreanC2DConverter extends C2DConverter
 			dNode.addSecondaryHead(getNLPNode(dTree, ante), DEPTagEn.DEP2_GAP);
 		}
 
-		if ((feat = getFunctionTags(cNode, SEM_TAGS)) != null)
-			cNode.getC2DInfo().putFeat(NLPUtils.FEAT_SEM, feat);
+//		if ((feat = getFunctionTags(cNode, SEM_TAGS)) != null)
+//			cNode.getC2DInfo().putFeat(NLPUtils.FEAT_SEM, feat);
 
 		if ((feat = getFunctionTags(cNode, SYN_TAGS)) != null)
 			cNode.getC2DInfo().putFeat(NLPUtils.FEAT_SYN, feat);
+
+//		System.out.println(cNode);
+//		System.out.println("FEAT!!!!");
+//		System.out.println(feat);
 
 		for (CTNode child : cNode.getChildrenList())
 			addFeats(dTree, cTree, child);
@@ -402,37 +677,24 @@ public class KoreanC2DConverter extends C2DConverter
 		{
 			if (isDative(node))
 				node.setDependencyLabel(DEPTagEn.DEP_DATIVE);
-			else if (isEmoticon(node))
+			if (isEmoticon(node))
 				node.setDependencyLabel(DEPTagEn.DEP_DISCOURSE);
 			else if (isVocative(node))
 				node.setDependencyLabel(DEPTagEn.DEP_VOCATIVE);
 		}
 	}
 
-	private boolean isDative(NLPNode node)
+	private boolean isDative(NLPNode node) // ~ 에, ~ 에게, ~ 한
 	{
 		if (!PTBLib.isVerb(node.getDependencyHead().getPartOfSpeechTag())) return false;
 //		if (node.isDependencyLabel(DEPTagEn.DEP_IOBJ)) return true;
 		String feat;
 
 		if ((feat = node.getFeat(NLPUtils.FEAT_SYN)) != null && DSUtils.toHashSet(Splitter.splitCommas(feat)).contains(PTBTag.F_DTV)) return true;
-		if (PTBTag.F_BNF.equals(node.getFeat(NLPUtils.FEAT_SEM))) return true;
-
 		return false;
 	}
 
-	private boolean isEmoticon(NLPNode node)
-	{
-		String s = node.getWordForm();
-		int[] idx = emoticon.getEmoticonRange(s);
-		return idx != null && idx[0] == 0 && idx[1] == s.length();
-	}
 
-	private boolean isVocative(NLPNode node)
-	{
-		String feat;
-		return (feat = node.getFeat(NLPUtils.FEAT_SEM)) != null && feat.equals(PTBLib.F_VOC);
-	}
 
 	private void finalizeCompound(NLPNode[] tree, String pos, String label, Predicate<NLPNode> p)
 	{
@@ -465,8 +727,9 @@ public class KoreanC2DConverter extends C2DConverter
 
 
 	static public void main(String[] args){
-		String headrule_path = "src/main/resources/edu/emory/mathcs/nlp/conversion/headrule_en_conll.txt";
-//		String headrule_path = "src/main/resources/edu/emory/mathcs/nlp/conversion/headrule_kr_penn.txt";
+		String headrule_path = "src/main/resources/edu/emory/mathcs/nlp/conversion/headrule_kr_penn.txt";
+//		headrule_path = "src/main/resources/edu/emory/mathcs/nlp/conversion/headrule_en_conll.txt";
+
 		System.out.println("Reading in HeadRule Map...");
 		HeadRuleMap hr = new HeadRuleMap(IOUtils.createFileInputStream(headrule_path));
 		System.out.println("Done.");
@@ -477,6 +740,7 @@ public class KoreanC2DConverter extends C2DConverter
 
 //		String path = "/Users/jayeolchun/Documents/Research/NLP/Korean/data/penn/newswire";
 		String path = "/Users/jayeolchun/Documents/Research/NLP/Korean/data/penn/sample";
+//		String out = "/Users/jayeolchun/Documents/Research/NLP/Korean/out/penn/newswire";
 		CTReader reader = new CTReader();
 		CTTree tree;
 
@@ -488,13 +752,10 @@ public class KoreanC2DConverter extends C2DConverter
 
 			while ((tree = reader.nextTree()) != null)
 			{
-//				count(tree.getRoot(), phraseTags, posTags, functionTags, emptyCategories);
-//				wc += tree.getTokenList().size();
-//				converter.toDependencyGraph(tree);
 				System.out.println(tree);
 				converter.toDependencyGraph(tree);
-				System.out.println(tree);
-				System.out.println();
+				NLPNode[] dTree = converter.toDependencyGraph(tree);
+
 			}
 
 			reader.close();
@@ -504,5 +765,33 @@ public class KoreanC2DConverter extends C2DConverter
 
 
 		System.out.println("Conversion Complete.");
+	}
+
+	private boolean isEmoticon(NLPNode node)
+	{
+		String s = node.getWordForm();
+		int[] idx = emoticon.getEmoticonRange(s);
+		return idx != null && idx[0] == 0 && idx[1] == s.length();
+	}
+
+	private boolean isVocative(NLPNode node)
+	{
+//		String feat;
+
+//		return (feat = node.getFeat(NLPUtils.FEAT_SEM)) != null && feat.equals(PTBLib.F_VOC);
+
+		String feat;
+		return (feat = node.getFeat(NLPUtils.FEAT_SYN)) != null && feat.equals(PKTBLib.F_VOC);
+	}
+	private boolean isMeta(CTNode node)
+	{
+		return node.isConstituentTagAny(S_META);
+	}
+
+
+	public void addNamedEntities(NLPNode[] dTree, CTTree cTree)
+	{
+		for (CTNode node : cTree.getTokenList())
+			dTree[node.getTokenID()+1].setNamedEntityTag(node.getNamedEntityTag());
 	}
 }

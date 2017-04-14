@@ -96,6 +96,7 @@ public class CTReader
 	 */
 	public CTTree nextTree()
 	{
+//		System.out.println("Insie CT Tree Next Trea");
 		String token = nextToken(), tags;
 		
 		if (token == null)
@@ -108,14 +109,25 @@ public class CTReader
 		}
 		
 		int nBrackets = 1, startLine = f_reader.getLineNumber();
+//		System.out.println(startLine);
 		CTNode root = new CTNode(CTTag.TOP, null);
 		CTNode curr = root, node;
-		
+//		System.out.println(root);
+//		System.out.println(curr);
+
+		if (token.equals(StringConst.LRB)){
+			tags = nextToken();
+			node = new CTNode(tags);
+			curr.addChild(node);
+			curr = node;
+//			nBrackets++;
+		}
+
 		while ((token = nextToken()) != null)
 		{
 			if (nBrackets == 1 && token.equals(CTTag.TOP))
 				continue;
-			
+
 			if (token.equals(StringConst.LRB))
 			{
 				tags = nextToken();
@@ -130,15 +142,10 @@ public class CTReader
 				nBrackets--;
 			}
 			else
-			{
 				curr.setWordForm(token);
-			}
-			
+
 			if (nBrackets == 0)
-			{
-				CTTree tree = new CTTree(root);
-				return tree;
-			}
+				return new CTTree(root);
 		}
 		
 		System.err.println("Error: brackets mismatch - starting line "+startLine);

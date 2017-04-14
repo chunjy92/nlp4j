@@ -41,6 +41,7 @@ public class C2DInfo
 		{
 			t_head = head.getC2DInfo().getTerminalHead();
 			n_head = head;
+//			b_head = true;
 		}
 		else
 		{
@@ -52,6 +53,7 @@ public class C2DInfo
 	
 	public void setTerminalHead(CTNode head)
 	{
+//		b_head = true;
 		t_head = head;
 	}
 	
@@ -62,10 +64,21 @@ public class C2DInfo
 	
 	public void setLabel(String label)
 	{
-		if (n_head == null)
+		System.out.println("setting Label jwithin C2DInfo");
+		System.out.println(n_head);
+		System.out.println(t_head);
+		if (n_head == null) {
+			System.out.println("Nulled");
 			s_label = label;
-		else
+		} else{
+			// infinite loop when n_head is not null
+			if (n_head.equals(t_head)){
+				System.out.println("N and T Equal ?????");
+			}
+			System.out.println("Falsing");
 			t_head.getC2DInfo().setLabel(label);
+		}
+
 	}
 	
 	/** Sets terminal heads for sibling constituents */

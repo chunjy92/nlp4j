@@ -79,30 +79,52 @@ abstract public class C2DConverter
 	 */
 	protected void setHeads(CTNode curr)
 	{
+		System.out.println("\n--- Inside Set Heads Method wihtin C2D Converter...");
+		System.out.println("Current CT Node");
+		System.out.println(curr);
 		// terminal nodes become the heads of themselves
 		if (curr.isTerminal())
 		{
+			System.out.println("Is Terminal? Itself becomes the head. return;;");
 			curr.setC2DInfo(new C2DInfo(curr));
+			System.out.println(curr.getC2DInfo().getTerminalHead());
+			System.out.println(curr.getC2DInfo().getNonTerminalHead());
 			return;
 		}
 		
 		// set the heads of all children
-		for (CTNode child : curr.getChildrenList())
+		for (CTNode child : curr.getChildrenList()){
+			System.out.println("Set heads of all children");
 			setHeads(child);
+			System.out.println("\n *** REturnined.");
+			System.out.println("Current node is:");
+			System.out.println(curr);
+		}
+
 		
-		// stop traversing if it is the top node
-		if (curr.isConstituentTag(CTTag.TOP))
+//		 stop traversing if it is the top node
+		if (curr.isConstituentTag(CTTag.TOP)){
+			System.out.println("Encountered Top! Returning..");
+//			setHeads()
 			return;
-		
+		}
+
 		// only one child
 		if (curr.getChildrenSize() == 1)
 		{
+			System.out.println("Only Child?");
 			curr.setC2DInfo(new C2DInfo(curr.getChild(0)));
+			System.out.println(curr);
+			System.out.println(curr.getC2DInfo().getNonTerminalHead());
+			System.out.println(curr.getC2DInfo().getTerminalHead());
+
 			return;
 		}
 		
 		// find the headrule of the current node
 		HeadRule rule = headrule_map.get(curr.getConstituentTag());
+		System.out.println("Found the HEadrule:");
+		System.out.println(rule);
 				
 		if (rule == null)
 		{
@@ -111,6 +133,9 @@ abstract public class C2DConverter
 		}
 		
 		// abstract method
+		System.out.println("Calling Set Heads Aux from Set Heads Method!");
+		System.out.println("Remember, curr is:");
+		System.out.println(curr);
 		setHeadsAux(rule, curr);
 	}
 	
@@ -123,7 +148,12 @@ abstract public class C2DConverter
 	 */
 	protected CTNode getHead(HeadRule rule, List<CTNode> nodes, int flagSize)
 	{
+		System.out.println("\n--- Inside Get Head Method wihtin C2D Converter...");
 		CTNode head = getDefaultHead(nodes);
+		System.out.println("Current Default Head!");
+		System.out.println(head);
+		System.out.println("Current Rule");
+		System.out.println(rule);
 		
 		if (head == null)
 		{
@@ -132,45 +162,70 @@ abstract public class C2DConverter
 			
 			int i, size = nodes.size(), flag;
 			int[] flags = new int[size];
+			System.out.println("Size: " + size);
 			CTNode child;
-			
-			for (i=0; i<size; i++)
+
+			System.out.println("Looping through nodes..");
+			// gets head Flag number for each node
+			for (i=0; i<size; i++){
+				CTNode a = nodes.get(i);
+
+				System.out.println(a);
+				System.out.println(getHeadFlag(a));
 				flags[i] = getHeadFlag(nodes.get(i));
-			
+			}
+			System.out.println("\nFirst Loop");
 			outer: for (flag=0; flag<flagSize; flag++)
 			{
-				for (HeadTagSet tagset : rule.getHeadTags())
+				System.out.println("Curent Flag: " + flag);
+				for (HeadTagSet tagset : rule.getHeadTags()) // for each tag wihtin a single line..
 				{
-					for (i=0; i<size; i++)
+					System.out.println("Current Tagset");
+					System.out.println(tagset);
+					for (i=0; i<size; i++) // for each child
 					{
 						child = nodes.get(i);
-						
+						System.out.println("Current child");
+						System.out.println(child);
 						if (flags[i] == flag && tagset.matches(child))
 						{
+							System.out.println("Head Tagset 1st Mathc!!!");
 							head = child;
+							System.out.println(child);
+							System.out.println(tagset);
 							break outer;
 						}
 					}
 				}
 			}
-			
+
+			System.out.println("\nSEcond Loop");
 			outer: for (flag=0; flag<flagSize; flag++)
 			{
 				for (HeadTagSet tagset : rule.getHeadTags())
 				{
+					System.out.println("Current Tagset");
+					System.out.println(tagset);
 					for (i=0; i<size; i++)
 					{
 						child = nodes.get(i);
-						
+						System.out.println("Current child");
+						System.out.println(child);
 						if (flags[i] == flag && tagset.matches(child))
 						{
+							System.out.println("Head Tagset 2nd Mathc!!!");
 							head = child;
+							System.out.println(child);
+							System.out.println(tagset);
 							break outer;
 						}
 					}
 				}
 			}
 		}
+
+		System.out.println("\nAfter looping, the head has become:");
+		System.out.println(head);
 		
 		if (head == null)
 			throw new IllegalStateException("Head not found");
@@ -179,10 +234,22 @@ abstract public class C2DConverter
 		
 		for (CTNode node : nodes)
 		{
-			if (node != head && !node.getC2DInfo().hasHead())
-				node.getC2DInfo().setHead(head, getDEPLabel(node, parent, head));
+			if (node != head && !node.getC2DInfo().hasHead()) {
+				System.out.println("Going to call Get Dep Label from SEt Heads method with:");
+				System.out.println("Child Node:");
+				System.out.println(node);
+				System.out.println("Parent:");
+				System.out.println(parent);
+				System.out.println("Head:");
+				System.out.println(head);
+				System.out.println(node.getC2DInfo().hasHead());
+				System.out.println(node.getC2DInfo().getNonTerminalHead());
+				System.out.println(node.getC2DInfo().getTerminalHead());
+				node.getC2DInfo().setHead(head, getDEPLabel(node, parent, head)); // get dep label here
+
+			}
 		}
-		
+		System.out.println("\n--- Exiting Get Head Method wihtin C2D Converter...");
 		return head;
 	}
 	
@@ -206,25 +273,25 @@ abstract public class C2DConverter
 	/** @return the dependency tree converted from the specific constituent tree without head information. */
 	protected NLPNode[] initDEPTree(CTTree cTree)
 	{
+		System.out.println("Init Dep Tree");
 		List<CTNode>  cNodes = cTree.getTokenList();
-		NLPNode[]     dNodes = new NLPNode[cNodes.size()];
+		NLPNode[]     dNodes = new NLPNode[cNodes.size()+1];
 		String form, pos;
 		NLPNode dNode;
 		int id;
-		
+
 		dNodes[0] = new NLPNode().toRoot();
-		
+
 		for (CTNode cNode : cNodes)
 		{
-			id   = cNode.getTokenID() + 1;
+			id   = cNode.getTokenID()+1;
 			form = PatternUtils.revertBrackets(cNode.getWordForm());
 			pos  = cNode.getConstituentTag();
-			
+
 			dNode = new NLPNode(id, form, pos, cNode.getC2DInfo().getFeatMap());
 			dNode.setSecondaryHeads(new ArrayList<>());
 			dNodes[id] = dNode;
 		}
-		
 		return dNodes;
 	}
 	

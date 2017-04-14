@@ -46,6 +46,7 @@ public class CTNode implements Comparable<CTNode>
 	// basic information
 	private String		s_wordForm = null;
 	private String		s_constituentTag;
+	private String[]    s_constituentTagSet;
 	private Set<String>	s_functionTags;
 	private int			i_emptyCategoryIndex   = -1;
 	private int			i_gappingRelationIndex = -1;
@@ -129,11 +130,25 @@ public class CTNode implements Comparable<CTNode>
 	{
 		return s_wordForm;
 	}
+
+	public String getLastWordForm(){
+		if(s_wordForm != null){
+			String[] tmp = s_wordForm.split("\\+");
+//			if (tmp.length<2) return null;
+			return tmp[tmp.length-1];
+		}
+		return s_wordForm;
+	}
 	
 	/** @return the pos/phrase/clause tag of this node. */
 	public String getConstituentTag()
 	{
 		return s_constituentTag;
+	}
+
+	public String getLastConstituentTag(){
+		String[] tmp = s_constituentTag.split("\\+");
+		return tmp[tmp.length-1];
 	}
 	
 	/** @return a set of function tags of this node. */
@@ -557,8 +572,17 @@ public class CTNode implements Comparable<CTNode>
 	
 	public void setConstituentTag(String tag)
 	{
+		if (tag.indexOf('+')!=-1){
+			setConstituentTagSet(tag);
+		} else{
+			s_constituentTagSet = null;
+		}
 		s_constituentTag = tag;
 	}
+	public void setConstituentTagSet(String tag){
+		s_constituentTagSet = tag.split("\\+");
+	}
+
 	public void addFunctionTag(String tag)
 	{
 		s_functionTags.add(tag);
@@ -696,6 +720,32 @@ public class CTNode implements Comparable<CTNode>
 	public boolean isConstituentTagAny(Set<String> tags)
 	{
 		return tags.contains(s_constituentTag);
+	}
+
+	public boolean isConstituentTagSetAny(Set<String> tags){
+		if (s_constituentTagSet==null){
+			return false;
+		}
+		for (String c : s_constituentTagSet){
+			if (tags.contains(c))
+				return true;
+		}
+		return false;
+	}
+
+	public boolean isConstituentTagSetAny(String... tags){
+		if (s_constituentTagSet==null){
+			return false;
+		}
+
+		for (String c : s_constituentTagSet){
+			for(String tag: tags){
+				if (tag.contains(c))
+					return true;
+			}
+
+		}
+		return false;
 	}
 	
 	/**
