@@ -39,6 +39,10 @@ def getDependencyLabel(C, P, p):
     root
   - if C has PRN:
     appos
+  - if d has last morpheme PAD:
+    advmod
+  - if d only has PCA:
+    case
   /*- if d has NNX:
     clf*/
   - if d has DAN:
@@ -46,6 +50,8 @@ def getDependencyLabel(C, P, p):
   - if d has ADC:
     a) if d's word is in [또, 또는, 및, 그리고]
       cc
+    b) else:
+      advmod
   - if d has any PUNCT:
     punct
   - if d has any VX:
@@ -54,6 +60,11 @@ def getDependencyLabel(C, P, p):
     advmod
   - if C has ADJP or d has any VJ:
     amod
+  - if P has any [ADJP | ADVP | VP]:
+    - if C has VP and C's Subject is an Empty Category:
+        xcomp
+    - if C is S:
+        ccomp
   - if C has function tag -COMP:
     a) if d has last morpheme PAD and the word is either 에게 or 게:
         iobj
@@ -80,10 +91,6 @@ def getDependencyLabel(C, P, p):
         nmod
   - if P has CV:
     compound
-  - if d has last morpheme PAD:
-    advmod
-  - if d only has PCA:
-    case
   - else:
     dep
 ```
